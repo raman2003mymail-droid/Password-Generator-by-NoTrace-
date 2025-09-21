@@ -134,15 +134,43 @@
         .copy-btn:hover {
             background: #0056b3;
         }
+
+        .strength-display {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .strength-bar {
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 0.5rem;
+            background: #3a3a3a;
+        }
+
+        .strength-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .weak { background: #ff5555; }
+        .medium { background: #ffaa00; }
+        .strong { background: #00cc00; }
+
+        .strength-text, .crack-time {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Password Generator</h1>
         <div class="input-group">
-            <label for="length">Password Length (16-99):</label>
-            <input type="number" id="length" min="16" max="99" value="16">
-            <div class="error" id="length-error">Please enter a number between 16 and 99.</div>
+            <label for="length">Password Length (1-99):</label>
+            <input type="number" id="length" min="1" max="99" value="16">
+            <div class="error" id="length-error">Please enter a number between 1 and 99.</div>
         </div>
         <div class="checkbox-group">
             <label><input type="checkbox" id="letters" checked> Include Letters (a-z, A-Z)</label>
@@ -156,6 +184,13 @@
             <input type="text" id="password" readonly>
         </div>
         <button class="copy-btn" onclick="copyPassword()">Copy Password</button>
+        <div class="strength-display">
+            <div class="strength-text" id="strength-text">Password Strength: Not Evaluated</div>
+            <div class="strength-bar">
+                <div class="strength-bar-fill" id="strength-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div class="crack-time" id="crack-time">Estimated Time to Crack: Not Evaluated</div>
+        </div>
     </div>
 
     <script>
@@ -167,14 +202,21 @@
             const passwordInput = document.getElementById('password');
             const lengthError = document.getElementById('length-error');
             const optionsError = document.getElementById('options-error');
+            const strengthText = document.getElementById('strength-text');
+            const strengthBarFill = document.getElementById('strength-bar-fill');
+            const crackTime = document.getElementById('crack-time');
 
-            // Reset error messages
+            // Reset error messages and strength display
             lengthError.style.display = 'none';
             optionsError.style.display = 'none';
+            strengthText.textContent = 'Password Strength: Not Evaluated';
+            strengthBarFill.style.width = '0%';
+            strengthBarFill.className = 'strength-bar-fill';
+            crackTime.textContent = 'Estimated Time to Crack: Not Evaluated';
 
             // Validate length
             const length = parseInt(lengthInput.value);
-            if (length < 16 || length > 99 || isNaN(length)) {
+            if (length < 1 || length > 99 || isNaN(length)) {
                 lengthError.style.display = 'block';
                 return;
             }
@@ -202,14 +244,71 @@
             }
 
             passwordInput.value = password;
+
+            // Evaluate password strength
+            evaluatePasswordStrength(password, chars.length);
+        }
+
+        function evaluatePasswordStrength(password, charSetSize) {
+            const strengthText = document.getElementById('strength-text');
+            const strengthBarFill = document.getElementById('strength-bar-fill');
+            const crackTime = document.getElementById('crack-time');
+
+            // Calculate entropy
+            const length = password.length;
+            const entropy = length * Math.log2(charSetSize);
+
+            // Determine strength based on entropy
+            let strength, barWidth, strengthClass;
+            if (entropy < 50) {
+                strength = 'Weak';
+                barWidth = '33%';
+                strengthClass = 'weak';
+            } else if (entropy < 80) {
+                strength = 'Medium';
+                barWidth = '66%';
+                strengthClass = 'medium';
+            } else {
+                strength = 'Strong';
+                barWidth = '100%';
+                strengthClass = 'strong';
+            }
+
+            // Estimate time to crack (assuming 10 billion guesses per second)
+            const guesses = Math.pow(charSetSize, length);
+            const secondsToCrack = guesses / 10_000_000_000;
+            const timeToCrack = formatTimeToCrack(secondsToCrack);
+
+            // Update UI
+            strengthText.textContent = `Password Strength: ${strength}`;
+            strengthBarFill.style.width = barWidth;
+            strengthBarFill.className = `strength-bar-fill ${strengthClass}`;
+            crackTime.textContent = `Estimated Time to Crack: ${timeToCrack}`;
+        }
+
+        function formatTimeToCrack(seconds) {
+            if (seconds < 60) return `${Math.round(seconds)} second${seconds !== 1 ? 's' : ''}`;
+            const minutes = seconds / 60;
+            if (minutes < 60) return `${Math.round(minutes)} minute${minutes !== 1 ? 's' : ''}`;
+            const hours = minutes / 60;
+            if (hours < 24) return `${Math.round(hours)} hour${hours !== 1 ? 's' : ''}`;
+            const days = hours / 24;
+            if (days < 365) return `${Math.round(days)} day${days !== 1 ? 's' : ''}`;
+            const years = days / 365;
+            if (years < 1000) return `${Math.round(years)} year${years !== 1 ? 's' : ''}`;
+            return 'Centuries';
         }
 
         function copyPassword() {
             const passwordInput = document.getElementById('password');
-            passwordInput.select();
-            document.execCommand('copy');
-            alert('Password copied to clipboard!');
+            if (passwordInput.value) {
+                passwordInput.select();
+                document.execCommand('copy');
+                alert('Password copied to clipboard!');
+            } else {
+                alert('No password to copy!');
+            }
         }
     </script>
 </body>
-</html>
+                       </html>
